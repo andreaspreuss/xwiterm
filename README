@@ -1,1 +1,7 @@
-TO-WRITE
+[PT-BR]
+
+Para instalar, simplesmente coloque tudo na mesma pasta e dê permissão de escrita para o arquivo "comandos.txt"
+Lembrando que é uma forma primária e até então provisória, pois o uso de $_SESSION não funciona. :(
+
+Para usar, abra no seu navegador e informe o login e senha do seu domínio unix - pois o mesmo autentica via "pseudoPAM".
+Depois é só usufruir do protótipo.
