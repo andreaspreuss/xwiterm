@@ -2,9 +2,11 @@
 /**
  * Class to control the process.
  * @author Thiago Bocchile <tykoth@gmail.com>
+ * @package xwiterm
+ * @subpackage xwiterm-linux
  */
 class Process {
-    public $pipes = array();
+    public $pipes;
     public $process;
 
     public function __construct($command) {
@@ -17,7 +19,7 @@ class Process {
 
     public function open($command) {
         $spec = array(
-                array("pty"),
+                array("pty"), // MAGIC - THE GATHERING!! MWAHAHAHAHA
                 array("pty"),
                 array("pty")
         );
@@ -36,11 +38,12 @@ class Process {
         return proc_get_status($this->process);
     }
     public function get() {
-		$out = fread($this->pipes[1], 128);
+//		$out = fread($this->pipes[1], 128);
 //		$out = fgets($this->pipes[1]);
-        //$out = stream_get_contents($this->pipes[1]);
+        $out = stream_get_contents($this->pipes[1]);
         return $out;
     }
+    
     public function put($data) {
 //		fwrite($this->pipes[1], $data."\n");
         fwrite($this->pipes[1], $data);
@@ -49,9 +52,6 @@ class Process {
 //		return fwrite($this->pipes[1], $data);
     }
 
-    public function sigTerm($term = 1) {
-        return proc_terminate($this->process,$term);
-    }
     public function close() {
         if(is_resource($this->process)) {
             fclose($this->pipes[0]);
@@ -61,6 +61,6 @@ class Process {
         }
     }
     public function metaData() {
-        return  stream_get_meta_data($this->pipes[1]);
+        return stream_get_meta_data($this->pipes[1]);
     }
 }

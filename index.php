@@ -1,20 +1,38 @@
 <?php
+/**
+ * Terminal interface
+ * This is the terminal interface.
+ * Here is all the html output, javascript and styles.
+ * As we see, in the bottom of the file, the process of the terminal starts
+ * after the end of html tag.
+ * The outputs of the terminal is javascript comming from Terminal::output().
+ *
+ * @author Thiago Bocchile <tykoth@gmail.com>
+ */
 
-// As condições
+
 set_time_limit(0);
 error_reporting(E_ALL);
 
-// As crianças
+/**
+ * The includes.
+ */
 include("process.class.php");
 include("terminal.class.php");
 
-// Apenas para receber comandos.
+/**
+ * The command comes from ajax-post.
+ */
 if(isset($_POST['stdin'])){
     Terminal::postCommand($_POST['stdin']);
     exit;
 }
 
-// A autenticação
+/**
+ * The authentication.
+ * You can change this method.
+ * I've used Auth Basic as example.
+ */
 if (!isset($_SERVER['PHP_AUTH_USER']) ||
     !Terminal::autenticate($_SERVER['PHP_AUTH_USER'],$_SERVER['PHP_AUTH_PW'])) {
     header('WWW-Authenticate: Basic realm="xwiterm (use your linux login)"');
@@ -25,85 +43,103 @@ if (!isset($_SERVER['PHP_AUTH_USER']) ||
 
 
 
-
-// UTF8 manolo! o/
+/**
+ * For brazilians only: "UTF8 MANOLO!"
+ */
 header("Content-type: text/html; charset=utf8");
 
 
 ?>
 <html>
-    <script  type="text/javascript" src="jquery.js"></script>
-    <script type="text/javascript">
-        var bash_history = [];
-        var bash_stop = 0;
-        function manda(valor){
-            $.post("index.php", {"stdin":valor}, function(data){return true;});
-		$("[name='stdin']").val("").focus();
-                bash_history.push(valor);
-                bash_stop = bash_history.length;
-        }
+    <head>
+        <title>xwiterm - <?php echo Terminal::getTitle(); ?></title>
+        <script type="text/javascript" src="jquery.js"></script>
+        <script type="text/javascript">
+            var bash_history = [];
+            var bash_stop = 0;
+            function manda(valor, clean){
+                $.post("index.php", {"stdin":valor}, function(data){
+                    return true;
+                });
+                if(clean == true){
+                    $(".stdin").val("").focus();
+                } else {
+                    $(".stdin").focus();
+                }
+                if(
+                    valor.charCodeAt(0) != 3 ||
+                    valor.charCodeAt(0) != 4 ||
+                    valor.charCodeAt(0) != 26 
+                ){
+                    bash_history.push(valor);
+                    bash_stop = bash_history.length;
+                }
+            }
 
-        // muito cara de aula de C da faculdade kkkk
-        function recebe(valor){
-            // Esses replaces acho que vão pro PHP.
-//            var c = String.fromCharCode(27);
-//            var regexp = new RegExp(c + '\\[\\d{2};\\d{2}m(.+)' + c + '\\[0m$', 'mg');
-//            var regexp = new RegExp(c + '.+\\d{1}m(.+)' + c + '\\[0m', 'mg');
-//            valor = valor.replace(regexp, "<b>$1</b>");
-            $("label").before( valor );
-            $(".stdin").parent().css({
-                //"border":"1px solid white",//debug
-                "left":$("pre > span:last").width() + "px"
-            });
-            window.scrollTo(0,document.body.scrollHeight);
+            // muito cara de aula de C da faculdade kkkk
+            function recebe(valor, type){
+                if(valor != "" || valor != null){
+                    $("label").before( valor );
+                }
+                if(typeof(type) != "undefined" && type != ""){
+                    $('.stdin').val(type)
+                }
+                $(".stdin").parent().css({
+                    "left":$("pre > span:last").width() + "px"
+                });
+                $(".stdin").removeAttr("readonly").focus();
+                window.scrollTo(0,document.body.scrollHeight);
+            }
+        </script>
+        <style>
+        body {
+            background-color:#000;
+            color:#FFF;
         }
-        function bottom(valor){
-            $(".bottom").html(valor);
+        .stdin {
+            background-color:#000000;
+            border:0 none;
+            color:#FFFFFF;
+            font-family:inherit;
+            font-size:12px;
+            line-height:inherit;
+            margin:0;
+            outline-style:none;
+            outline-width:0;
+            padding:0;
+            width:100%;
         }
-        function ctrlc(){
-            $.post("stdin.php", {"stdin":String.fromCharCode(3)}, function(data){return true;});
-		$("[name='stdin']").val("").focus();
+        p{ margin:0;}
+        label {
+            position:absolute;
+            right:0; left:200;
         }
-    </script>
-    <style>
-    body {
-        background-color:#000;
-        color:#FFF;
-    }
-    .stdin {
-        background-color:#000000;
-        border:0 none;
-        color:#FFFFFF;
-        font-family:inherit;
-        font-size:12px;
-        line-height:inherit;
-        margin:0;
-        outline-style:none;
-        outline-width:0;
-        padding:0;
-        width:100%;
-    }
-    p{ margin:0;}
-    label {
-        position:absolute;
-        right:0; left:200;
-    }
-    .bottom { /* future... */
-        border:1px solid white;
-    }
-    </style>
+        tt {font-weight: bold}
+        .bottom { /* future... */
+            border:1px solid white;
+        }
+        </style>
+    </head>
+    
     <body>
         <pre><label><input type="text" name="stdin" class="stdin" autocomplete="off"/></label></pre>
-        
     </body>
-    <script>
-        // É meio óbvio porque tem essa tag script aqui e não
-        // lá em cima dentro de um $(document).ready(), né?
-        // Pra quem não entendeu, em breve uma explicação.
+
+<script>
+        /**
+         * This tag "script" is placed here because we can't use "onload" or
+         * $(document).ready() - the document only loads after close the terminal.
+         */
         $(".stdin").keydown(function(e){
+                if($(this).is("[readonly]")) return false;
                 code = e.keyCode ? e.keyCode : e.which;
 
-                if(code.toString() == 13) manda(this.value);
+                if(code.toString() == 13) manda(this.value, true);
+                if(code.toString() == 9) {
+                    e.preventDefault();
+                    manda(this.value + String.fromCharCode(9), false);
+                    return false;
+                }
                 if(code.toString() == 38) {
                     if(bash_stop <= 0) bash_stop = 1;
                     this.value = bash_history[bash_stop-1];
@@ -120,23 +156,31 @@ header("Content-type: text/html; charset=utf8");
 
                 }
                 if(e.ctrlKey && code.toString() == 67) {
-                    manda(String.fromCharCode(3));
                     e.preventDefault();
+                    manda(String.fromCharCode(3), true);
+                    return false;
                 }
                 if(e.ctrlKey && code.toString() == 68) {
-                    manda(String.fromCharCode(4));
                     e.preventDefault();
+                    manda(String.fromCharCode(4), true);
+                    return false;
                 }
                 if(e.ctrlKey && code.toString() == 90) {
-                    manda(String.fromCharCode(26));
                     e.preventDefault();
+                    manda(String.fromCharCode(26), true);
+                    return false;
                 }
         });
         $(".stdin").val("").focus();
-        // isso é um COCO, mas fica igualzinho ao terminal
+
         $("body").click(function(){
-            $(".stdin").val("").focus();
+            $(".stdin").focus();
         })
     </script>
 </html>
-<?php Terminal::run($_SERVER['PHP_AUTH_USER'],$_SERVER['PHP_AUTH_PW']); ?>
+<?php
+/**
+ * All the output is made by this simple method.
+ */
+Terminal::run($_SERVER['PHP_AUTH_USER'],$_SERVER['PHP_AUTH_PW']);
+?>

@@ -1,14 +1,1 @@
-echo test
-echo test
-ping localhost
-
- su mariana
-123mudar
-
-tty
-echo $SHELL
-export SHELL=/bin/sh
-su mariana
-123mudar
-
-exit
+
